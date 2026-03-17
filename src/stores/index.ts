@@ -913,6 +913,7 @@ interface SettingsStore {
   dailyScheduleSlots: TimeSlot[];
   hourHeight: number; // pixels per hour in schedule
   taskViewMode: TaskViewMode;
+  hourlyRate: number; // hourly rate for time cost calculation
   setFontScale: (scale: number) => void;
   setLanguage: (lang: Language) => void;
   setTickSound: (enabled: boolean) => void;
@@ -927,6 +928,7 @@ interface SettingsStore {
   setDailyScheduleSlots: (slots: TimeSlot[]) => void;
   setHourHeight: (height: number) => void;
   setTaskViewMode: (mode: TaskViewMode) => void;
+  setHourlyRate: (rate: number) => void;
 }
 
 const DEFAULT_FINANCE_CATEGORIES: FinanceCategory[] = [
@@ -954,6 +956,7 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   ]),
   hourHeight: loadFromStorage<number>('nw_hour_height', 60), // default 60px per hour
   taskViewMode: loadFromStorage<TaskViewMode>('nw_task_view_mode', 'matrix'),
+  hourlyRate: loadFromStorage<number>('nw_hourly_rate', 50000), // default 50k VND per hour
   currentPage: 'tasks',
   setFontScale: (scale) => {
     const safe = Math.max(0.75, Math.min(1.5, scale));
@@ -999,5 +1002,10 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   setTaskViewMode: (mode) => {
     saveToStorage('nw_task_view_mode', mode);
     set({ taskViewMode: mode });
+  },
+  setHourlyRate: (rate) => {
+    const safe = Math.max(0, rate);
+    saveToStorage('nw_hourly_rate', safe);
+    set({ hourlyRate: safe });
   },
 }));

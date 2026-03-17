@@ -24,6 +24,8 @@ export default function CashFlowPage() {
   const timezone = useSettingsStore(s => s.timezone);
   const financeCategories = useSettingsStore(s => s.financeCategories);
   const costItems = useSettingsStore(s => s.costItems);
+  const hourlyRate = useSettingsStore(s => s.hourlyRate);
+  const setHourlyRate = useSettingsStore(s => s.setHourlyRate);
   const now = getNowInTimezone(timezone);
   
   const [dateRangeType, setDateRangeType] = useState<DateRangeType>('day');
@@ -188,7 +190,7 @@ export default function CashFlowPage() {
 
   // 📊 Generate chart data for the range (daily breakdown)
   const chartData = useMemo(() => {
-    const days: { date: string; income: number; expense: number; net: number; label: string }[] = [];
+    const days: { date: string; income: number; expense: number; net: number; label: string; timeCost: number; trackedSeconds: number }[] = [];
     
     // Determine granularity based on range
     let current = new Date(rangeStart);
@@ -204,16 +206,24 @@ export default function CashFlowPage() {
       
       const dayIncome = dayTasks.reduce((s, t) => s + (t.finance?.type === 'income' ? t.finance.amount : 0), 0);
       const dayExpense = dayTasks.reduce((s, t) => s + (t.finance?.type === 'expense' ? t.finance.amount : 0), 0);
+      
+      // Time cost calculation: duration (in seconds) * hourly rate / 3600
+      const dayTrackedSeconds = dayTasks.reduce((s, t) => s + (t.effectiveDuration || t.duration || 0), 0);
+      const dayTimeCost = Math.round((dayTrackedSeconds / 3600) * hourlyRate);
+      
       const dayBaseCost = dailyBaseCost;
-      const dayNet = dayIncome - dayExpense - dayBaseCost;
+      // Net = income - expense - base cost - time cost
+      const dayNet = dayIncome - dayExpense - dayBaseCost - dayTimeCost;
       
       const label = current.toLocaleDateString('vi-VN', { day: 'numeric', month: 'short' });
       
       days.push({
         date: `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`,
         income: dayIncome,
-        expense: dayExpense + dayBaseCost,
+        expense: dayExpense + dayBaseCost + dayTimeCost,
         net: dayNet,
+        timeCost: dayTimeCost,
+        trackedSeconds: dayTrackedSeconds,
         label
       });
       
@@ -221,7 +231,7 @@ export default function CashFlowPage() {
     }
     
     return days;
-  }, [rangeStart, rangeEnd, tasks, dailyBaseCost]);
+  }, [rangeStart, rangeEnd, tasks, dailyBaseCost, hourlyRate]);
 
   // Find max value for chart scaling
   const maxChartValue = useMemo(() => {
@@ -235,13 +245,19 @@ export default function CashFlowPage() {
     
     const totalIncome = chartData.reduce((s, d) => s + d.income, 0);
     const totalExpense = chartData.reduce((s, d) => s + d.expense, 0);
+    const totalTimeCost = chartData.reduce((s, d) => s + (d.timeCost || 0), 0);
+    const totalTrackedSec = chartData.reduce((s, d) => s + (d.trackedSeconds || 0), 0);
+    const totalTrackedHours = totalTrackedSec / 3600;
+    const wastedTimeSec = (chartData.length * 86400) - totalTrackedSec;
+    const wastedTimeHours = wastedTimeSec / 3600;
+    
     const avgDaily = (totalIncome + totalExpense) / chartData.length;
     const positiveDays = chartData.filter(d => d.net > 0).length;
     const negativeDays = chartData.filter(d => d.net < 0).length;
     const bestDay = chartData.reduce((best, d) => d.net > best.net ? d : best, chartData[0]);
     const worstDay = chartData.reduce((worst, d) => d.net < worst.net ? d : worst, chartData[0]);
     
-    return { totalIncome, totalExpense, avgDaily, positiveDays, negativeDays, bestDay, worstDay };
+    return { totalIncome, totalExpense, totalTimeCost, totalTrackedHours, wastedTimeHours, avgDaily, positiveDays, negativeDays, bestDay, worstDay };
   }, [chartData]);
 
   return (

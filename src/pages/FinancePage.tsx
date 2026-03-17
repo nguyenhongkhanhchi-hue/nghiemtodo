@@ -110,9 +110,13 @@ export default function FinancePage() {
   const timezone = useSettingsStore(s => s.timezone);
   const [period, setPeriod] = useState<Period>('month');
   const [view, setView] = useState<ViewMode>('overview');
-  const [hourlyRate, setHourlyRate] = useState<number>(() => {
+  const hourlyRate = useSettingsStore(s => s.hourlyRate);
+  const setHourlyRate = useSettingsStore(s => s.setHourlyRate);
+  const [hourlyRateLocal, setHourlyRateLocal] = useState<number>(() => {
     try { return parseInt(localStorage.getItem('nw_hourly_rate') || '50000') || 50000; } catch { return 50000; }
   });
+  // Use the store value if available, otherwise fall back to local
+  const effectiveHourlyRate = hourlyRate || hourlyRateLocal;
   const [editingRate, setEditingRate] = useState(false);
   const [rateInput, setRateInput] = useState('');
   const [chartType, setChartType] = useState<'bar' | 'line' | 'pie'>('bar');
@@ -143,7 +147,7 @@ export default function FinancePage() {
     const doneTasks = tasks.filter(t => t.status === 'done' && t.completedAt && t.completedAt >= cutoffTime);
     return doneTasks.map(t => {
       const durationHours = (t.duration || 0) / 3600;
-      const timeCost = durationHours * hourlyRate;
+      const timeCost = durationHours * effectiveHourlyRate;
       const income = t.finance?.type === 'income' ? t.finance.amount : 0;
       const expense = t.finance?.type === 'expense' ? t.finance.amount : 0;
       const netFlow = income - (expense + timeCost);
@@ -159,7 +163,7 @@ export default function FinancePage() {
         isProfit: netFlow >= 0,
       };
     }).sort((a, b) => b.completedAt - a.completedAt);
-  }, [tasks, hourlyRate, cutoffTime]);
+  }, [tasks, effectiveHourlyRate, cutoffTime]);
 
   const todayStats = useMemo(() => {
     const today = new Date();
@@ -167,10 +171,10 @@ export default function FinancePage() {
     const todayTasks = tasks.filter(t => t.status === 'done' && t.completedAt && t.completedAt >= todayStart);
     const totalTrackedSec = todayTasks.reduce((s, t) => s + (t.duration || 0), 0);
     const totalTrackedHours = totalTrackedSec / 3600;
-    const trackedTimeCost = totalTrackedHours * hourlyRate;
+    const trackedTimeCost = totalTrackedHours * effectiveHourlyRate;
     const totalIncome = todayTasks.reduce((s, t) => s + (t.finance?.type === 'income' ? t.finance.amount : 0), 0);
     const totalExpense = todayTasks.reduce((s, t) => s + (t.finance?.type === 'expense' ? t.finance.amount : 0), 0);
-    const cost24h = 24 * hourlyRate;
+    const cost24h = 24 * effectiveHourlyRate;
     const wastedHours = 24 - totalTrackedHours;
     const dayFlow = totalIncome - (totalExpense + cost24h);
     const timeEfficiency = Math.min(100, (totalTrackedHours / 24) * 100);
@@ -186,7 +190,7 @@ export default function FinancePage() {
       timeEfficiency,
       taskCount: todayTasks.length,
     };
-  }, [tasks, hourlyRate]);
+  }, [tasks, effectiveHourlyRate]);
 
   // Combine task finance + manual transactions
   const taskTx = useMemo(() =>
@@ -344,10 +348,10 @@ export default function FinancePage() {
                   </div>
                 ) : (
                   <button
-                    onClick={() => { setRateInput(hourlyRate.toString()); setEditingRate(true); }}
+                    onClick={() => { setRateInput(effectiveHourlyRate.toString()); setEditingRate(true); }}
                     className="text-lg font-black font-mono text-[var(--accent-primary)] hover:opacity-80 active:scale-95 transition-all"
                   >
-                    {formatMoney(hourlyRate)}đ/h
+                    {formatMoney(effectiveHourlyRate)}đ/h
                   </button>
                 )}
               </div>
