@@ -299,6 +299,14 @@ export function DailySchedule24h({ scrollToNowTrigger, selectedDate, onDateChang
 
   // Scroll to now on mount (today only) and when trigger fires
   useEffect(() => {
+    // Always scroll to current time when trigger fires
+    if (scrollToNowTrigger !== undefined && scrollToNowTrigger > 0) {
+      setTimeout(() => scrollToNow(), 100);
+    }
+  }, [scrollToNowTrigger, scrollToNow]);
+
+  // Scroll to current time on initial mount if today
+  useEffect(() => {
     const targetDate = selectedDate || new Date();
     const today = new Date();
     const isToday = targetDate.toDateString() === today.toDateString();
@@ -307,12 +315,6 @@ export function DailySchedule24h({ scrollToNowTrigger, selectedDate, onDateChang
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (scrollToNowTrigger !== undefined && scrollToNowTrigger > 0) {
-      setTimeout(() => scrollToNow(), 100);
-    }
-  }, [scrollToNowTrigger, scrollToNow]);
 
   const isTimerActive = (taskId: string) => {
     return timer.taskId === taskId && (timer.isRunning || timer.isPaused);

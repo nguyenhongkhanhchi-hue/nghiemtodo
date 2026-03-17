@@ -2,7 +2,7 @@ import { useTaskStore, useSettingsStore, useAuthStore } from '@/stores';
 import { TaskList } from '@/components/features/TaskList';
 import { DailySchedule24h } from '@/components/features/DailySchedule24h';
 import { Slider } from '@/components/ui/slider';
-import { Calendar, Download, FileJson, FileText, File, LayoutGrid, Clock, Layers, CheckSquare } from 'lucide-react';
+import { Calendar, Download, FileJson, FileText, File, LayoutGrid, Clock, Layers, CheckSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getNowInTimezone } from '@/lib/notifications';
 import { downloadICS, downloadJSON, downloadCSV, exportToPDF } from '@/lib/calendarExport';
 import { useState, useEffect } from 'react';
@@ -154,6 +154,43 @@ export default function TasksPage() {
             <span>Lịch biểu</span>
           </button>
         </div>
+        
+        {/* Quick date navigation for Schedule view */}
+        {taskViewMode === 'schedule' && (
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <button
+              onClick={() => {
+                const d = new Date(scheduleDate);
+                d.setDate(d.getDate() - 1);
+                setScheduleDate(d);
+                setScheduleScrollTrigger(t => t + 1);
+              }}
+              className="size-8 rounded-lg bg-[var(--bg-elevated)] text-[var(--text-muted)] flex items-center justify-center hover:bg-[var(--bg-surface)] active:scale-90 transition-all"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={() => {
+                setScheduleDate(new Date());
+                setScheduleScrollTrigger(t => t + 1);
+              }}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold text-[var(--accent-primary)] hover:bg-[var(--bg-elevated)] transition-colors"
+            >
+              Hôm nay
+            </button>
+            <button
+              onClick={() => {
+                const d = new Date(scheduleDate);
+                d.setDate(d.getDate() + 1);
+                setScheduleDate(d);
+                setScheduleScrollTrigger(t => t + 1);
+              }}
+              className="size-8 rounded-lg bg-[var(--bg-elevated)] text-[var(--text-muted)] flex items-center justify-center hover:bg-[var(--bg-surface)] active:scale-90 transition-all"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Hour Height Adjustment Slider (only in schedule mode) */}

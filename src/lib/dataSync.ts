@@ -41,6 +41,18 @@ export async function loadTasksFromDB(userId: string): Promise<Task[]> {
       showNotes: row.show_notes || false,
       notes: row.notes,
       category: row.category,
+      // Timer and schedule fields
+      startTime: row.start_time,
+      startDate: row.start_date,
+      expectedEndTime: row.expected_end_time,
+      actualStartTime: row.actual_start_time,
+      effectiveDuration: row.effective_duration,
+      plannedDuration: row.planned_duration,
+      reliabilityScore: row.reliability_score,
+      lateMinutes: row.late_minutes,
+      startStatus: row.start_status,
+      pauseCount: row.pause_count,
+      timerEvents: row.timer_events,
     }));
   } catch (err) {
     console.error('Error loading tasks from DB:', err);
@@ -80,6 +92,18 @@ export async function saveTasksToDB(userId: string, tasks: Task[]): Promise<void
         show_notes: task.showNotes || false,
         notes: task.notes,
         category: task.category,
+        // Timer and schedule fields
+        start_time: task.startTime,
+        start_date: task.startDate,
+        expected_end_time: task.expectedEndTime,
+        actual_start_time: task.actualStartTime,
+        effective_duration: task.effectiveDuration,
+        planned_duration: task.plannedDuration,
+        reliability_score: task.reliabilityScore,
+        late_minutes: task.lateMinutes,
+        start_status: task.startStatus,
+        pause_count: task.pauseCount,
+        timer_events: task.timerEvents,
         updated_at: Date.now(),
       }));
       
@@ -217,6 +241,8 @@ export async function loadGamificationFromDB(userId: string): Promise<Gamificati
       earlyBirdCount: data.early_bird_count,
       achievements: data.achievements || [],
       rewards: data.rewards || [],
+      perfectDays: data.perfect_days || [],
+      dailyCompletionDates: data.daily_completion_dates || [],
     };
   } catch (err) {
     console.error('Error loading gamification from DB:', err);
@@ -238,6 +264,8 @@ export async function saveGamificationToDB(userId: string, state: GamificationSt
       early_bird_count: state.earlyBirdCount,
       achievements: state.achievements,
       rewards: state.rewards,
+      perfect_days: state.perfectDays,
+      daily_completion_dates: state.dailyCompletionDates,
       updated_at: new Date().toISOString(),
     });
     
