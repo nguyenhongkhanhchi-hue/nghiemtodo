@@ -361,14 +361,6 @@ export function DailySchedule24h({ scrollToNowTrigger, selectedDate, onDateChang
             <ChevronRight size={14} />
           </button>
         </div>
-        <button
-          onClick={scrollToNow}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-500 text-[10px] font-bold hover:bg-red-500/20 active:scale-90 transition-all border border-red-500/20"
-          title="Nh\u1ea3y \u0111\u1ebfn th\u1eddi \u0111i\u1ec3m hi\u1ec7n t\u1ea1i"
-        >
-          <div className="size-1.5 rounded-full bg-red-500 animate-pulse" />
-          Hi\u1ec7n t\u1ea1i
-        </button>
       </div>
 
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto pb-24">
