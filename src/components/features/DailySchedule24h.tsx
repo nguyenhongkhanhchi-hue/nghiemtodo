@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useTaskStore, useSettingsStore } from '@/stores';
-import { Play, Pause, Check, Clock, TrendingUp, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, Pause, Check, Clock, TrendingUp, AlertTriangle, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import type { Task } from '@/types';
 import { TaskViewModal } from './TaskViewModal';
 import { TaskEditModal } from './TaskEditModal';
@@ -37,6 +37,14 @@ const CATEGORY_COLORS: Record<string, string> = {
   finance: '#FBBF24',
   social: '#F472B6',
   other: '#86EFAC',
+};
+
+const QUADRANT_LABELS: Record<string, { label: string; color: string }> = {
+  do_first: { label: 'Khẩn cấp', color: '#EF4444' },
+  schedule: { label: 'Lên lịch', color: '#3B82F6' },
+  delegate: { label: 'Ủy quyền', color: '#F59E0B' },
+  eliminate: { label: 'Loại bỏ', color: '#6B7280' },
+  overdue: { label: 'Quá hạn', color: '#DC2626' },
 };
 
 const doTimesOverlap = (start1: string, end1: string, start2: string, end2: string): boolean => {
@@ -154,6 +162,9 @@ function TaskBlock({ task, idx, todayTasks, hourHeight, timer, isTimerActive, ha
   const taskColor = TASK_COLORS[colorIndex];
   const activeClass = isActive ? 'animate-pulse' : '';
 
+  const quadrantInfo = QUADRANT_LABELS[task.quadrant || 'schedule'] || QUADRANT_LABELS.schedule;
+  const showNotes = task.notes && task.notes.trim().length > 0;
+
   return (
     <div
       className={`absolute rounded-lg border transition-all duration-200 overflow-hidden cursor-pointer ${isActive ? 'shadow-lg ring-2 ring-[var(--accent-primary)] z-20' : 'hover:shadow-md hover:-translate-y-0.5'} ${activeClass}`}
@@ -177,10 +188,25 @@ function TaskBlock({ task, idx, todayTasks, hourHeight, timer, isTimerActive, ha
       />
       <div className="p-2 pl-4 h-full flex flex-col justify-between overflow-visible">
         <div className="flex items-start justify-between gap-2">
-          <p className={`text-xs font-semibold flex-1 leading-tight ${isDone ? 'line-through opacity-60' : ''}`} style={{ color: statusColor.text }} title={task.title}>
-            {task.title}
-          </p>
+          <div className="flex-1 min-w-0">
+            <p className={`text-xs font-semibold flex-1 leading-tight ${isDone ? 'line-through opacity-60' : ''}`} style={{ color: statusColor.text }} title={task.title}>
+              {task.title}
+            </p>
+            {showNotes && (
+              <p className="text-[9px] font-medium italic mt-0.5 truncate" style={{ color: statusColor.text }} title={task.notes}>
+                "{task.notes}"
+              </p>
+            )}
+          </div>
           <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Quadrant badge */}
+            <span 
+              className="text-[8px] px-1 py-0.5 rounded font-bold"
+              style={{ backgroundColor: quadrantInfo.color + '30', color: quadrantInfo.color }}
+              title={quadrantInfo.label}
+            >
+              {quadrantInfo.label}
+            </span>
             {isDone && <span className="text-[10px]" style={{ color: statusColor.text }}>✓</span>}
             {isPaused && <span className="text-[10px]" style={{ color: statusColor.text }}>⏸</span>}
             {isActive && <span className="text-[10px] animate-pulse" style={{ color: statusColor.text }}>▶</span>}
@@ -326,7 +352,7 @@ export function DailySchedule24h({ scrollToNowTrigger, selectedDate, onDateChang
   const isToday = displayDate.toDateString() === today.toDateString();
   const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
   const dayLabel = isToday
-    ? `H\u00f4m nay \u2022 ${String(displayDate.getDate()).padStart(2, '0')}/${String(displayDate.getMonth() + 1).padStart(2, '0')}`
+    ? `Hôm nay • ${String(displayDate.getDate()).padStart(2, '0')}/${String(displayDate.getMonth() + 1).padStart(2, '0')}`
     : `${dayNames[displayDate.getDay()]} ${String(displayDate.getDate()).padStart(2, '0')}/${String(displayDate.getMonth() + 1).padStart(2, '0')}/${displayDate.getFullYear()}`;
 
   return (
@@ -344,11 +370,35 @@ export function DailySchedule24h({ scrollToNowTrigger, selectedDate, onDateChang
           >
             <ChevronLeft size={14} />
           </button>
+          
+          {/* Date picker button */}
           <button
-            onClick={() => onDateChange?.(new Date())}
-            className="px-2 py-1 rounded-lg text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface)] transition-colors"
+            onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'date';
+              input.value = selectedDate ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}` : `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+              input.onchange = (e) => {
+                const value = (e.target as HTMLInputElement).value;
+                if (value) {
+                  const [year, month, day] = value.split('-').map(Number);
+                  const d = new Date(year, month - 1, day);
+                  onDateChange?.(d);
+                }
+              };
+              input.click();
+            }}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)] active:scale-95 transition-all flex items-center gap-1.5"
           >
+            <Calendar size={12} />
             {dayLabel}
+          </button>
+
+          <button
+            onClick={() => scrollToNow()}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-secondary)] active:scale-95 transition-all shadow-md"
+            title="Cuộn đến giờ hiện tại"
+          >
+            Hiện tại
           </button>
           <button
             onClick={() => {

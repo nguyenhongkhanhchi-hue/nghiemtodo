@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTaskStore, useSettingsStore } from '@/stores';
 import { getNowInTimezone } from '@/lib/notifications';
-import { Wallet, TrendingUp, TrendingDown, Clock, ChevronLeft, ChevronRight, AlertCircle, BarChart3, Calendar, PieChart, LineChart, Zap } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Clock, ChevronLeft, ChevronRight, AlertCircle, BarChart3, Calendar, PieChart, LineChart, Zap, Target } from 'lucide-react';
 import type { FinanceCategory, CostItem } from '@/types';
 
 function formatVND(amount: number): string {
@@ -184,6 +184,34 @@ export default function CashFlowPage() {
 
   // Net = thu - chi - chi phí cơ bản
   const netProfit = totalIncome - totalExpense - rangeBaseCost;
+
+  // ✅ DỰ KIẾN DÒNG TIỀN: Tính các khoản chưa hoàn thành
+  const pendingTasksWithFinance = useMemo(() =>
+    tasks.filter(t => t.status !== 'done' && t.finance && t.finance.amount && t.finance.amount > 0),
+    [tasks]
+  );
+
+  const expectedIncome = useMemo(() =>
+    pendingTasksWithFinance
+      .filter(t => t.finance?.type === 'income')
+      .reduce((s, t) => s + (t.finance?.amount || 0), 0),
+    [pendingTasksWithFinance]
+  );
+
+  const expectedExpense = useMemo(() =>
+    pendingTasksWithFinance
+      .filter(t => t.finance?.type === 'expense')
+      .reduce((s, t) => s + (t.finance?.amount || 0), 0),
+    [pendingTasksWithFinance]
+  );
+
+  // Expected time cost from pending tasks
+  const expectedTimeCost = useMemo(() =>
+    pendingTasksWithFinance.reduce((s, t) => s + ((t.duration || 0) * costPerSecond), 0),
+    [pendingTasksWithFinance, costPerSecond]
+  );
+
+  const expectedNet = expectedIncome - expectedExpense - expectedTimeCost;
 
   // Task breakdown
   const taskRows = completedInRange.filter(t => t.finance || t.duration);
@@ -371,6 +399,47 @@ export default function CashFlowPage() {
             </div>
           </div>
         </div>
+
+        {/* DỰ KIẾN DÒNG TIỀN */}
+        {(expectedIncome > 0 || expectedExpense > 0) && (
+          <div className="col-span-2 bg-gradient-to-br from-violet-500/10 to-purple-500/10 rounded-3xl p-5 border border-violet-500/20 shadow-sm mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="size-8 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                  <Target size={16} className="text-violet-500" />
+                </div>
+                <span className="text-sm font-bold text-[var(--text-primary)]">Dòng tiền dự kiến</span>
+              </div>
+              <div className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${expectedNet >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                {expectedNet >= 0 ? 'Dương' : 'Âm'}
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-1 mb-4">
+              <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Dự kiến ròng</span>
+              <div className="flex items-baseline gap-2">
+                <span className={`text-2xl font-black font-mono tabular-nums ${expectedNet >= 0 ? 'text-violet-400' : 'text-red-400'}`}>
+                  {expectedNet >= 0 ? '+' : ''}{formatVND(expectedNet)}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 pt-4 border-t border-violet-500/20">
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase">Dự kiến thu</span>
+                <span className="text-sm font-black text-emerald-400 font-mono">+{formatVND(expectedIncome)}</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase">Dự kiến chi</span>
+                <span className="text-sm font-black text-red-400 font-mono">-{formatVND(expectedExpense)}</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase">Chi phí TG</span>
+                <span className="text-sm font-black text-amber-400 font-mono">-{formatVND(expectedTimeCost)}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Small Cards */}
         <div className="bg-[var(--bg-elevated)] rounded-3xl p-4 border border-[var(--border-subtle)] flex flex-col gap-2">

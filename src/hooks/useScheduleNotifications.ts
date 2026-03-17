@@ -81,6 +81,27 @@ export function useScheduleNotifications() {
   
   const lastCheckRef = useRef<number>(0);
   
+  // Request notification permissions on first use
+  useEffect(() => {
+    const requestPermissions = async () => {
+      if ('Notification' in window && Notification.permission === 'default') {
+        try {
+          const permission = await Notification.requestPermission();
+          console.log('Notification permission:', permission);
+        } catch (e) {
+          console.log('Notification permission error:', e);
+        }
+      }
+      
+      // Preload voices for speech synthesis
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.getVoices();
+      }
+    };
+    
+    requestPermissions();
+  }, []);
+  
   // Send notification with bell sound and voice
   const sendScheduleNotification = useCallback((
     task: Task,
