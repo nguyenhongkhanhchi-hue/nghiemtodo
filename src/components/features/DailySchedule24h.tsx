@@ -268,6 +268,8 @@ export function DailySchedule24h({ scrollToNowTrigger, selectedDate, onDateChang
 
   const { recordActualStart, updateTaskReliability } = useScheduleNotifications();
 
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
   const handleStartTimer = (taskId: string) => {
     recordActualStart(taskId);
     startTimer(taskId);
@@ -357,8 +359,8 @@ export function DailySchedule24h({ scrollToNowTrigger, selectedDate, onDateChang
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      {/* Date navigation header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)] flex-shrink-0">
+      {/* Date navigation header - sticky */}
+      <div className="sticky top-0 z-50 bg-[var(--bg-elevated)] border-b border-[var(--border-subtle)] flex items-center justify-between px-3 py-2 flex-shrink-0">
         <div className="flex items-center gap-1">
           <button
             onClick={() => {
@@ -373,25 +375,26 @@ export function DailySchedule24h({ scrollToNowTrigger, selectedDate, onDateChang
           
           {/* Date picker button */}
           <button
-            onClick={() => {
-              const input = document.createElement('input');
-              input.type = 'date';
-              input.value = selectedDate ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}` : `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
-              input.onchange = (e) => {
-                const value = (e.target as HTMLInputElement).value;
-                if (value) {
-                  const [year, month, day] = value.split('-').map(Number);
-                  const d = new Date(year, month - 1, day);
-                  onDateChange?.(d);
-                }
-              };
-              input.click();
-            }}
+            onClick={() => dateInputRef.current?.showPicker()}
             className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)] active:scale-95 transition-all flex items-center gap-1.5"
           >
             <Calendar size={12} />
             {dayLabel}
           </button>
+          <input
+            ref={dateInputRef}
+            type="hidden"
+            className="hidden"
+            value={selectedDate ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}` : `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value) {
+                const [year, month, day] = value.split('-').map(Number);
+                const d = new Date(year, month - 1, day);
+                onDateChange?.(d);
+              }
+            }}
+          />
 
           <button
             onClick={() => scrollToNow()}
